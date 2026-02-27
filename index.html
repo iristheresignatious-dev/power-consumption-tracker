@@ -1,10 +1,63 @@
-<link rel="stylesheet" href="style.css">
-<script src="script.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Resume Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-<div class="upload-section">
-  <input type="file" />
-  <button>Analyze</button>
-</div>
-<div class="results-section">
-  <!-- score, feedback goes here -->
-</div>
+  <header>
+    <h1>Resume<span>AI</span></h1>
+    <p>Analyze your resume in seconds</p>
+  </header>
+
+  <main>
+
+    <div class="upload-section">
+      <label>Upload Your Resume</label>
+      <input type="file" id="resumeFile" accept=".pdf,.docx" />
+      <p id="fileName">No file chosen</p>
+    </div>
+
+    <div class="jd-section">
+      <label>Paste Job Description (optional)</label>
+      <textarea id="jobDesc" placeholder="Paste the job description here..."></textarea>
+    </div>
+
+    <button id="analyzeBtn">Analyze Resume</button>
+
+    <div id="loading" class="hidden">
+      <p>Analyzing your resume...</p>
+    </div>
+
+    <div id="results" class="results-section hidden">
+
+      <div class="score-card">
+        <h2>Overall Score</h2>
+        <div id="scoreValue" class="score">--</div>
+      </div>
+
+      <div class="feedback-card">
+        <h3>Strengths</h3>
+        <ul id="strengthsList"></ul>
+      </div>
+
+      <div class="feedback-card">
+        <h3>Weaknesses</h3>
+        <ul id="weaknessesList"></ul>
+      </div>
+
+      <div class="feedback-card">
+        <h3>Missing Keywords</h3>
+        <ul id="keywordsList"></ul>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
