@@ -1,0 +1,8 @@
+body {
+  background: #0a0a0a;
+  color: #f0ede8;
+  font-family: 'DM Sans', sans-serif;
+}
+@media (max-width: 768px) {
+  .main { flex-direction: column; }
+}
