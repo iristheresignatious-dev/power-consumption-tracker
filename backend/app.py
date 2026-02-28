@@ -1,27 +1,30 @@
-
-# ===== IMPORTS =====
+# ===== IMPORTS (all at the top) =====
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
 import anthropic
 import json
+import re
 import io
 
 # ===== CREATE APP =====
 app = FastAPI()
 
-# ===== FIX CORS (allows frontend to talk to backend) =====
+# ===== FIX CORS =====
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=".*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ===== YOUR CLAUDE API KEY =====
-CLAUDE_API_KEY = "paste-your-api-key-here"
+# IMPORTANT: Replace this with your real API key from console.anthropic.com
+CLAUDE_API_KEY = "paste-your-real-api-key-here"
 
-# ===== HEALTH CHECK (test if server is running) =====
+# ===== HEALTH CHECK =====
 @app.get("/")
 def home():
     return {"message": "Backend is running!"}
@@ -33,34 +36,49 @@ async def analyze_resume(
     resume: UploadFile = File(...),
     jobDescription: str = Form("")
 ):
-
-    # STEP 1 - read the uploaded PDF file
+    # STEP 1 - read the uploaded file
     file_bytes = await resume.read()
 
-    # STEP 2 - extract text from PDF
+    # STEP 2 - extract text
     resume_text = extract_text_from_pdf(file_bytes)
 
     if not resume_text:
-        return {"error": "Could not read the PDF. Please try another file."}
+        return {"error": "Could not read the file. Please try another file."}
 
-    # STEP 3 - send to Claude AI and get analysis
+    # STEP 3 - send to Claude AI
     result = analyze_with_claude(resume_text, jobDescription)
 
     # STEP 4 - return result to frontend
     return result
 
 
-# ===== FUNCTION TO READ PDF =====
+# ===== FUNCTION TO READ FILE =====
 def extract_text_from_pdf(file_bytes):
+
+    # first try reading as PDF
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
             text = ""
             for page in pdf.pages:
                 text += page.extract_text() or ""
-        return text
+        if text.strip():
+            print("Read as PDF successfully")
+            return text
     except Exception as e:
-        print("PDF error:", e)
-        return None
+        print("PDF read failed:", e)
+
+    # if PDF fails try reading as plain text
+    try:
+        text = file_bytes.decode('utf-8')
+        if text.strip():
+            print("Read as TXT successfully")
+            return text
+    except Exception as e:
+        print("TXT read failed:", e)
+
+    # if both fail
+    print("Could not read file at all")
+    return None
 
 
 # ===== FUNCTION TO CALL CLAUDE AI =====
@@ -72,22 +90,22 @@ def analyze_with_claude(resume_text, job_description):
         # build the prompt
         prompt = f"""
         You are an expert resume reviewer and career coach.
-        
+
         Analyze the resume below and return ONLY a JSON object.
-        No extra text, just the JSON.
-        
+        No extra text, no markdown, no code blocks, just raw JSON.
+
         Resume:
         {resume_text}
-        
+
         Job Description:
         {job_description if job_description else "No job description provided"}
-        
+
         Return this exact JSON format:
         {{
             "score": <number between 0 and 100>,
-            "strengths": [<list of 3 strengths as strings>],
-            "weaknesses": [<list of 3 weaknesses as strings>],
-            "keywords": [<list of 4 missing keywords as strings>]
+            "strengths": ["strength 1", "strength 2", "strength 3"],
+            "weaknesses": ["weakness 1", "weakness 2", "weakness 3"],
+            "keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4"]
         }}
         """
 
@@ -102,10 +120,22 @@ def analyze_with_claude(resume_text, job_description):
 
         # get the response text
         response_text = message.content[0].text
+        print("Claude returned:", response_text)
 
-        # convert to python dictionary
-        result = json.loads(response_text)
-        return result
+        # clean markdown if present
+        response_text = response_text.strip()
+        response_text = response_text.replace("```json", "")
+        response_text = response_text.replace("```", "")
+        response_text = response_text.strip()
+
+        # find JSON in the response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            print("Parsed successfully:", result)
+            return result
+        else:
+            raise ValueError("No JSON found in Claude response")
 
     except Exception as e:
         print("Claude error:", e)
