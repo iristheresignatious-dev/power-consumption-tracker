@@ -41,7 +41,7 @@ analyzeBtn.addEventListener('click', async function() {
     formData.append('jobDescription', jobDesc.value);
 
     // send to backend
-    const response = await fetch('http://127.0.0.1:8000/analyze', {
+    const response = await fetch('https://resume-ai.onrender.com/analyze', {
       method: 'POST',
       body: formData
     });
