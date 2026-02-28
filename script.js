@@ -41,7 +41,7 @@ analyzeBtn.addEventListener('click', async function() {
     formData.append('jobDescription', jobDesc.value);
 
     // send to backend
-    const response = await fetch('http://localhost:8000/analyze', {
+    const response = await fetch('http://127.0.0.1:8000/analyze', {
       method: 'POST',
       body: formData
     });
@@ -53,6 +53,9 @@ analyzeBtn.addEventListener('click', async function() {
 
     // convert response to javascript object
     const result = await response.json();
+
+    // print result in console so you can see what backend returns
+    console.log('Backend returned:', result);
 
     // display the results on screen
     displayResults(result);
@@ -88,14 +91,23 @@ function displayResults(data) {
 
   hideLoading();
 
+  // ===== FIX: if data is wrapped in an extra layer, unwrap it =====
+  if (data.result) data = data.result;
+
+  // ===== FIX: use safe fallbacks so forEach never crashes =====
+  const score     = data.score      || 0;
+  const strengths = data.strengths  || [];
+  const weaknesses= data.weaknesses || [];
+  const keywords  = data.keywords   || [];
+
   // show the score
-  scoreValue.textContent = data.score + '/100';
+  scoreValue.textContent = score + '/100';
 
   // color the score based on value
   scoreValue.className = 'score';
-  if (data.score >= 75) {
+  if (score >= 75) {
     scoreValue.classList.add('high');    // green
-  } else if (data.score >= 50) {
+  } else if (score >= 50) {
     scoreValue.classList.add('mid');     // yellow
   } else {
     scoreValue.classList.add('low');     // orange
@@ -103,7 +115,7 @@ function displayResults(data) {
 
   // fill strengths list
   strengthsList.innerHTML = '';
-  data.strengths.forEach(function(item) {
+  strengths.forEach(function(item) {
     const li = document.createElement('li');
     li.textContent = item;
     strengthsList.appendChild(li);
@@ -111,7 +123,7 @@ function displayResults(data) {
 
   // fill weaknesses list
   weaknessesList.innerHTML = '';
-  data.weaknesses.forEach(function(item) {
+  weaknesses.forEach(function(item) {
     const li = document.createElement('li');
     li.textContent = item;
     weaknessesList.appendChild(li);
@@ -119,7 +131,7 @@ function displayResults(data) {
 
   // fill missing keywords list
   keywordsList.innerHTML = '';
-  data.keywords.forEach(function(item) {
+  keywords.forEach(function(item) {
     const li = document.createElement('li');
     li.textContent = item;
     keywordsList.appendChild(li);
@@ -156,3 +168,4 @@ function getMockResult() {
     ]
   };
 }
+
